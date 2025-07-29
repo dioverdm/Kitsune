@@ -23,9 +23,9 @@ const geistSans = localFont({
 //   weight: "100 900",
 // });
 
-const APP_NAME = "Kitsune";
-const APP_DEFAULT_TITLE = "Kitsune | Anime Streaming";
-const APP_DESCRIPTION = "Stream your favourite anime with ease and no ads";
+const APP_NAME = "AniOS";
+const APP_DEFAULT_TITLE = "AnioOS TV | Transmisión de anime en alta calidad";
+const APP_DESCRIPTION = "Transmite tu anime favorito con facilidad y sin anuncios";
 
 export const metadata: Metadata = {
   applicationName: APP_NAME,
@@ -59,7 +59,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning>
       <head>
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-X9RZ58XPH1"
