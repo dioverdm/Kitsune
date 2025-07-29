@@ -14,13 +14,13 @@ const Footer = () => {
           <DiscordLogoIcon width="25" height="25" />
         </a>
         <a href="https://tiktok.com/@aniostv" target="_blank">
-          <TiktokLogoIcon width="25" target="_blank">
+          <TiktokLogoIcon width="25" target="_blank" />
         </a>
         <a href="https://Youtube.com/@aniostv" target="_blank">
-          <YoutubeLogoIcon width="25" target="_blank">
+          <YoutubeLogoIcon width="25" target="_blank" />
         </a>
         <a href="https://discord.gg/" target="_blank">
-          <WhatsappLogoIcon width="25" target="_blank">
+          <WhatsappLogoIcon width="25" target="_blank" />
         </a>
       </div>
       <p className="text-sm text-gray-300">
