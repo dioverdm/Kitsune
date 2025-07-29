@@ -113,8 +113,8 @@ const NavBar = () => {
           {auth.auth ? <NavbarAvatar auth={auth} /> : <LoginPopoverButton />}
         </div>
         <div className="lg:hidden flex items-center gap-5">
-          <MobileMenuSheet trigger={<MenuIcon />} />
           {auth.auth ? <NavbarAvatar auth={auth} /> : <LoginPopoverButton />}
+          <MobileMenuSheet trigger={<MenuIcon />} />
         </div>
       </Container>
     </div>
