@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import { DiscordLogoIcon, TelegramLogoIcon, TiktokLogoIcon, YoutubeLogoIcon, WhatsappLogoIcon } from "@radix-ui/react-icons";
 import Image from "next/image";
