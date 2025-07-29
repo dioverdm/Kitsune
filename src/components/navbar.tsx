@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 import Container from "./container";
 import { Separator } from "./ui/separator";
 
-import { nightTokyo } from "@/utils/fonts";
 import { ROUTES } from "@/constants/routes";
 import React, { ReactNode, useEffect, useState } from "react";
 
@@ -35,6 +34,7 @@ const menuItems: Array<{ title: string; href?: string }> = [
   // {
   //   title: "Collection",
   // },
+  // import { nightTokyo } from "@/utils/fonts";
   // <h1
   //          className={cn([
   //            nightTokyo.className,
