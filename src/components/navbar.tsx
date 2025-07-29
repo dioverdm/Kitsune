@@ -35,6 +35,14 @@ const menuItems: Array<{ title: string; href?: string }> = [
   // {
   //   title: "Collection",
   // },
+  // <h1
+  //          className={cn([
+  //            nightTokyo.className,
+  //           "text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-200 to-pink-600 tracking-widest",
+  //         ])}
+  //        >
+  //          Kitsunee
+  //        </h1>
 ];
 
 const NavBar = () => {
@@ -92,14 +100,6 @@ const NavBar = () => {
           className="flex items-center gap-1 cursor-pointer"
         >
           <Image src="/icon.png" alt="logo" width={70} height={70} />
-          {/*<h1
-            className={cn([
-              nightTokyo.className,
-              "text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-200 to-pink-600 tracking-widest",
-            ])}
-          >
-            Kitsunee
-          </h1> */}
         </Link>
         <div className="hidden lg:flex items-center gap-10 ml-20">
           {menuItems.map((menu, idx) => (
