@@ -62,7 +62,7 @@ const Footer = () => {
             alojados en servicios de terceros. Disfruta del anime de manera legal y responsable.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-4 text-xs text-gray-500">
-            <span>&copy; {new Date().getFullYear()} AniOS - Todos los derechos reservados</span>
+            <span>&copy; {new Date().getFullYear()} AniTV - Todos los derechos reservados</span>
             <span className="hidden sm:block">•</span>
             <span>Desarrollado con ❤️ por DioverDM</span>
           </div>
