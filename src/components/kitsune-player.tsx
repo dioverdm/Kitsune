@@ -385,7 +385,8 @@ function KitsunePlayer({
           },
         }),
         artplayerPluginAmbilight({
-          blur: 30,
+          // CORREGIDO: blur debe ser string, no número
+          blur: "30px",
           opacity: 0.8,
           frequency: 10,
           duration: 0.3,
