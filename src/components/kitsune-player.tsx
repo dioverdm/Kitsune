@@ -251,7 +251,7 @@ function KitsunePlayer({
     const subtitleConfig: Option["subtitle"] =
       subOrDub === "sub"
         ? {
-          url: episodeInfo?.tracks?.find((track) => track.lang === "English")
+          url: episodeInfo?.tracks?.find((track) => track.lang === "Español")
             ?.url,
           type: "vtt",
           style: {

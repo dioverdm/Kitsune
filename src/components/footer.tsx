@@ -13,14 +13,14 @@ const Footer = () => {
           <div className="flex items-center space-x-4">
             <Image 
               src="/icon.png" 
-              alt="AniOS Logo" 
+              alt="AniTV Logo" 
               width="80" 
               height="80"
               className="transform hover:scale-105 transition-transform duration-300"
             />
             <div>
               <h3 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                AniOS
+                AniTV
               </h3>
               <p className="text-sm text-gray-400">Tu plataforma de anime</p>
             </div>
@@ -45,13 +45,13 @@ const Footer = () => {
 
         <div className="text-center space-y-3">
           <p className="text-sm text-gray-400 leading-relaxed max-w-2xl mx-auto">
-            AniOS no almacena ningún archivo en el servidor, solo enlaza a los contenidos multimedia 
+            AniTV no almacena ningún archivo en el servidor, solo enlaza a los contenidos multimedia 
             alojados en servicios de terceros. Disfruta del anime de manera legal y responsable.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-4 text-xs text-gray-500">
-            <span>&copy; {new Date().getFullYear()} AniOS - Todos los derechos reservados</span>
+            <span>&copy; {new Date().getFullYear()} AniTV - Todos los derechos reservados</span>
             <span className="hidden sm:block">•</span>
-            <span>Desarrollado con ❤️ por DioverDM</span>
+            <span>Desarrollado con ❤️ por Pogo OS</span>
           </div>
         </div>
       </div>
