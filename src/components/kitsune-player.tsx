@@ -227,13 +227,6 @@ function KitsunePlayer({
     skipTimesRef.current.outroStart = outroStart;
     skipTimesRef.current.outroEnd = outroEnd;
 
-    // Opciones de subtítulos en español
-    const trackOptions: any = (episodeInfo?.tracks ?? []).map((track) => ({
-      default: track.lang === "Español",
-      html: this.getSubtitleLabel(track.lang),
-      url: track.url,
-    }));
-
     // Función helper para etiquetas de subtítulos
     const getSubtitleLabel = (lang: string) => {
       const labels: { [key: string]: string } = {
@@ -247,6 +240,13 @@ function KitsunePlayer({
       };
       return labels[lang] || lang;
     };
+
+    // Opciones de subtítulos en español
+    const trackOptions: any = (episodeInfo?.tracks ?? []).map((track) => ({
+      default: track.lang === "Español",
+      html: getSubtitleLabel(track.lang),
+      url: track.url,
+    }));
 
     const subtitleConfig: Option["subtitle"] =
       subOrDub === "sub"
