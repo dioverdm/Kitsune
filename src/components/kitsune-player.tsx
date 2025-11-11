@@ -532,7 +532,7 @@ function KitsunePlayer({
           if (textElement) {
             textElement.textContent = `Saltar ${skipText}`;
           }
-          manualSkip.tooltip = `Saltar ${skipText}`;
+          // CORREGIDO: Eliminada la línea que intentaba asignar tooltip al elemento HTML
         } else {
           if (manualSkip.style?.display !== "none") {
             if (manualSkip.style) manualSkip.style.display = "none";
