@@ -12,42 +12,41 @@ import type { Option } from "artplayer/types/option";
 import Hls from "hls.js";
 
 // Helper functions and types (keep or import from your types file)
-import { IEpisodeServers, IEpisodeSource, IEpisodes } from "@/types/episodes"; // Adjust path as needed
-import loadingImage from "@/assets/genkai.gif"; // Adjust path as needed
+import { IEpisodeServers, IEpisodeSource, IEpisodes } from "@/types/episodes";
+import loadingImage from "@/assets/genkai.gif";
 import artplayerPluginHlsControl from "artplayer-plugin-hls-control";
 import artplayerPluginAmbilight from "artplayer-plugin-ambilight";
-import { env } from "next-runtime-env"; // Ensure this works in client components or pass env vars differently
+import { env } from "next-runtime-env";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth-store";
 import useBookMarks from "@/hooks/use-get-bookmark";
 import { pb } from "@/lib/pocketbase";
 import Image from "next/image";
 
-const WATCH_PROGRESS_UPDATE_INTERVAL = 10000; // Update every 10 seconds
-const WATCH_PROGRESS_MIN_WATCH_TIME = 10; // Min seconds watched to create record
+const WATCH_PROGRESS_UPDATE_INTERVAL = 10000; // Actualizar cada 10 segundos
+const WATCH_PROGRESS_MIN_WATCH_TIME = 10; // Mínimo segundos vistos para crear registro
 
-// --- Define Props for the Combined Player ---
 interface ArtPlayerProps extends HTMLAttributes<HTMLDivElement> {
-  episodeInfo: IEpisodeSource; // Source info including URLs, tracks, intro/outro
-  animeInfo: { title: string; image: string; id: string }; // Basic anime info for poster etc.
-  subOrDub: "sub" | "dub"; // Use literal type for clarity
-  episodes?: IEpisodes; // Optional: If needed for playlist features later
-  getInstance?: (art: Artplayer) => void; // Callback to get the instance
+  episodeInfo: IEpisodeSource;
+  animeInfo: { title: string; image: string; id: string };
+  subOrDub: "sub" | "dub";
+  episodes?: IEpisodes;
+  getInstance?: (art: Artplayer) => void;
   autoSkip?: boolean;
   serversData: IEpisodeServers;
 }
 
-// --- Helper to generate highlights ---
 interface HighlightPoint {
   time: number;
   text: string;
 }
+
 const generateHighlights = (
   start: number | undefined | null,
   end: number | undefined | null,
   label: string,
 ): HighlightPoint[] => {
-  if (start == null || end == null || start >= end) return []; // Use >= to avoid single-second highlights
+  if (start == null || end == null || start >= end) return [];
   const highlights: HighlightPoint[] = [];
   for (let time = Math.floor(start); time <= Math.floor(end); time++) {
     highlights.push({ time, text: label });
@@ -55,7 +54,6 @@ const generateHighlights = (
   return highlights;
 };
 
-// --- The Combined ArtPlayer Component ---
 function KitsunePlayer({
   episodeInfo,
   animeInfo,
@@ -63,21 +61,20 @@ function KitsunePlayer({
   getInstance,
   autoSkip = true,
   serversData,
-  ...rest // Spread other div attributes like className, id, etc.
+  ...rest
 }: ArtPlayerProps): JSX.Element {
-  const artContainerRef = useRef<HTMLDivElement>(null); // Ref for the mounting div
-  const artInstanceRef = useRef<Artplayer | null>(null); // Ref for the ArtPlayer instance
-  const hlsInstanceRef = useRef<Hls | null>(null); // Ref for the Hls.js instance
+  const artContainerRef = useRef<HTMLDivElement>(null);
+  const artInstanceRef = useRef<Artplayer | null>(null);
+  const hlsInstanceRef = useRef<Hls | null>(null);
 
-  // State only needed for the current auto-skip setting
   const [isAutoSkipEnabled, setIsAutoSkipEnabled] = useState(autoSkip);
 
   const bookmarkIdRef = useRef<string | null>(null);
-  const watchHistoryIdsRef = useRef<string[]>([]); // Store initial list
+  const watchHistoryIdsRef = useRef<string[]>([]);
   const watchedRecordIdRef = useRef<string | null>(null);
   const updateTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastUpdateTimeRef = useRef<number>(0);
-  const hasMetMinWatchTimeRef = useRef<boolean>(false); // Track if min time met for this episode
+  const hasMetMinWatchTimeRef = useRef<boolean>(false);
   const initialSeekTimeRef = useRef<number | null>(null);
 
   const { auth } = useAuthStore();
@@ -89,7 +86,7 @@ function KitsunePlayer({
     setIsAutoSkipEnabled(autoSkip);
   }, [autoSkip]);
 
-  // --- Construct Proxy URI ---
+  // --- Construir URI del Proxy ---
   const uri = useMemo(() => {
     const firstSourceUrl = episodeInfo?.sources?.[0]?.url;
     const referer = episodeInfo?.headers?.Referer;
@@ -100,7 +97,7 @@ function KitsunePlayer({
       const url = encodeURIComponent(firstSourceUrl);
       return `${baseURI}?url=${url}&referer=${referer}`;
     } catch (error) {
-      console.error("Error constructing proxy URI:", error);
+      console.error("Error construyendo URI del proxy:", error);
       return null;
     }
   }, [episodeInfo]);
@@ -116,7 +113,6 @@ function KitsunePlayer({
 
   useEffect(() => {
     if (!auth || !animeInfo.id || !serversData.episodeId) {
-      // Reset refs if critical info is missing
       bookmarkIdRef.current = null;
       watchedRecordIdRef.current = null;
       watchHistoryIdsRef.current = [];
@@ -125,7 +121,7 @@ function KitsunePlayer({
       return;
     }
 
-    let isMounted = true; // Track mount status for async operations
+    let isMounted = true;
 
     const fetchBookmarkAndWatchedId = async () => {
       const id = await createOrUpdateBookMark(
@@ -137,7 +133,7 @@ function KitsunePlayer({
       );
 
       if (!isMounted || !id) {
-        bookmarkIdRef.current = null; // Clear if failed or unmounted
+        bookmarkIdRef.current = null;
         watchedRecordIdRef.current = null;
         watchHistoryIdsRef.current = [];
         initialSeekTimeRef.current = null;
@@ -146,10 +142,8 @@ function KitsunePlayer({
       }
 
       bookmarkIdRef.current = id;
-      hasMetMinWatchTimeRef.current = false; // Reset min watch time check
+      hasMetMinWatchTimeRef.current = false;
 
-      // Now find the specific watched record ID for THIS episode
-      // Fetch again with expand (or use initial list if sufficient)
       try {
         const expandedBookmark = await pb.collection("bookmarks").getOne(id, {
           expand: "watchHistory",
@@ -174,16 +168,15 @@ function KitsunePlayer({
             initialSeekTimeRef.current !== null &&
             initialSeekTimeRef.current >= WATCH_PROGRESS_MIN_WATCH_TIME;
         } else {
-          watchedRecordIdRef.current = null; // Explicitly set to null
-          initialSeekTimeRef.current = null; // Ensure it's null if no record
+          watchedRecordIdRef.current = null;
+          initialSeekTimeRef.current = null;
           hasMetMinWatchTimeRef.current = false;
         }
       } catch (e) {
-        console.error("Error fetching bookmark watch history:", e);
+        console.error("Error obteniendo historial de visualización:", e);
         if (!isMounted) return;
-        // Keep bookmarkId, but assume no watched record found
         watchedRecordIdRef.current = null;
-        initialSeekTimeRef.current = null; // Ensure it's null if no record
+        initialSeekTimeRef.current = null;
         hasMetMinWatchTimeRef.current = false;
       }
     };
@@ -191,10 +184,7 @@ function KitsunePlayer({
     fetchBookmarkAndWatchedId();
 
     return () => {
-      isMounted = false; // Cleanup flag
-      // Optional: Clear refs on unmount? Or rely on fetch logic?
-      // bookmarkIdRef.current = null;
-      // watchedRecordIdRef.current = null;
+      isMounted = false;
     };
   }, [
     auth,
@@ -205,11 +195,9 @@ function KitsunePlayer({
     createOrUpdateBookMark,
   ]);
 
-  // --- Effect for Player Initialization and Cleanup ---
+  // --- Efecto para Inicialización y Limpieza del Reproductor ---
   useEffect(() => {
-    // Wait for container ref and valid URI
     if (!artContainerRef.current || !uri) {
-      // Clean up previous instances if URI becomes invalid or ref detach
       if (hlsInstanceRef.current) {
         hlsInstanceRef.current.destroy();
         hlsInstanceRef.current = null;
@@ -221,7 +209,6 @@ function KitsunePlayer({
       return;
     }
 
-    // Make sure start/end are valid numbers before creating range
     const introStart = episodeInfo?.intro?.start;
     const introEnd = episodeInfo?.intro?.end;
     skipTimesRef.current.validIntro =
@@ -232,56 +219,73 @@ function KitsunePlayer({
     skipTimesRef.current.introEnd = introEnd;
 
     const outroStart = episodeInfo?.outro?.start;
-    const outroEnd = episodeInfo?.outro?.end; // Use let for potential modification
+    const outroEnd = episodeInfo?.outro?.end;
     skipTimesRef.current.validOutro =
       typeof outroStart === "number" &&
       typeof outroEnd === "number" &&
-      outroStart < outroEnd; // Adjust condition if needed
+      outroStart < outroEnd;
     skipTimesRef.current.outroStart = outroStart;
-    skipTimesRef.current.outroEnd = outroEnd; // Store the raw value
+    skipTimesRef.current.outroEnd = outroEnd;
 
-    // Subtitle Track Selector Options
+    // Opciones de subtítulos en español
     const trackOptions: any = (episodeInfo?.tracks ?? []).map((track) => ({
-      default: track.lang === "English", // Example default logic
-      html: track.lang,
+      default: track.lang === "Español",
+      html: this.getSubtitleLabel(track.lang),
       url: track.url,
     }));
 
-    // Direct Subtitle Option based on subOrDub
+    // Función helper para etiquetas de subtítulos
+    const getSubtitleLabel = (lang: string) => {
+      const labels: { [key: string]: string } = {
+        "English": "Inglés",
+        "Spanish": "Español", 
+        "Español": "Español",
+        "French": "Francés",
+        "German": "Alemán",
+        "Japanese": "Japonés",
+        "Portuguese": "Portugués"
+      };
+      return labels[lang] || lang;
+    };
+
     const subtitleConfig: Option["subtitle"] =
       subOrDub === "sub"
         ? {
-          url: episodeInfo?.tracks?.find((track) => track.lang === "Español")
-            ?.url,
+          url: episodeInfo?.tracks?.find((track) => 
+            track.lang === "Español" || track.lang === "Spanish"
+          )?.url,
           type: "vtt",
           style: {
-            // Example styles
             color: "#FFFFFF",
-            fontSize: "22px", // Base size, will be adjusted
+            fontSize: "22px",
             textShadow: "1px 1px 3px rgba(0,0,0,0.8)",
+            fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
           },
           encoding: "utf-8",
-          escape: false, // Allow potential styling tags in VTT
+          escape: false,
         }
-        : {}; // Explicitly hide if 'dub'
+        : {};
 
+    // Control de salto manual - Traducido
     const manualSkipControl = {
-      name: "manual-skip", // Unique name
-      position: "right", // Place near other controls
+      name: "manual-skip",
+      position: "right",
       html: `
                 <div style="display: flex; align-items: center; gap: 4px; padding: 0 6px;">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" x2="19" y1="5" y2="19"/></svg>
-                    <span class="art-skip-text">Skip</span>
+                    <span class="art-skip-text">Saltar</span>
                 </div>
-            `, // Icon + Text (use a class for text if needed)
-      tooltip: "Skip", // Initial tooltip
+            `,
+      tooltip: "Saltar",
       style: {
-        display: "none", // Start hidden
+        display: "none",
         cursor: "pointer",
         borderRadius: "4px",
-        marginRight: "10px", // Space from toggle
-        padding: "3px 0", // Adjust padding for vertical centering
+        marginRight: "10px",
+        padding: "3px 0",
+        background: "rgba(0,0,0,0.7)",
+        border: "1px solid rgba(255,255,255,0.3)",
       },
       click: function(controlItem: any) {
         const art = artInstanceRef.current;
@@ -309,27 +313,25 @@ function KitsunePlayer({
           currentTime >= outroStart &&
           currentTime < resolvedOutroEnd
         ) {
-          // Seek slightly before end if target is duration
           seekTarget =
             resolvedOutroEnd === duration ? duration - 0.1 : resolvedOutroEnd;
         }
 
         if (typeof seekTarget === "number") {
-          art.seek = Math.min(seekTarget, duration); // Seek
+          art.seek = Math.min(seekTarget, duration);
         }
 
-        // Hide the button immediately after click
         if (controlItem.style) controlItem.style.display = "none";
       },
     };
 
     let currentHlsInstanceForCleanup: Hls | null = null;
 
-    // Combine All Options
+    // Opciones Finales del Reproductor - Mejoradas
     const finalOptions: Option = {
       container: artContainerRef.current,
       url: uri,
-      type: "m3u8", // Explicitly set type for HLS
+      type: "m3u8",
       customType: {
         m3u8: (
           videoElement: HTMLMediaElement,
@@ -337,59 +339,53 @@ function KitsunePlayer({
           artPlayerInstance: Artplayer,
         ) => {
           if (Hls.isSupported()) {
-            // Destroy previous HLS instance if attached to this player
             if (hlsInstanceRef.current) {
               hlsInstanceRef.current.destroy();
             }
-            const hls = new Hls();
+            const hls = new Hls({
+              enableWorker: true,
+              lowLatencyMode: true,
+              backBufferLength: 90
+            });
             hls.loadSource(url);
             hls.attachMedia(videoElement);
-            hlsInstanceRef.current = hls; // Store ref
-            currentHlsInstanceForCleanup = hls; // Store for cleanup
-            // Make sure HLS instance is destroyed when ArtPlayer instance is destroyed
+            hlsInstanceRef.current = hls;
+            currentHlsInstanceForCleanup = hls;
+            
             artPlayerInstance.on("destroy", () => {
               if (hlsInstanceRef.current === hls) {
-                // Check if it's the same instance
                 hls.destroy();
                 hlsInstanceRef.current = null;
                 currentHlsInstanceForCleanup = null;
-                console.log(
-                  "HLS instance destroyed via ArtPlayer destroy event.",
-                );
               }
             });
-          } else if (
-            videoElement.canPlayType("application/vnd.apple.mpegurl")
-          ) {
-            videoElement.src = url; // Fallback for Safari native HLS
+          } else if (videoElement.canPlayType("application/vnd.apple.mpegurl")) {
+            videoElement.src = url;
           } else {
-            artPlayerInstance.notice.show =
-              "HLS playback is not supported on your browser.";
+            artPlayerInstance.notice.show = "La reproducción HLS no es compatible con tu navegador.";
           }
         },
       },
       plugins: [
         artplayerPluginHlsControl({
-          // Configure HLS controls
           quality: {
             control: true,
             setting: true,
             getName: (level: { height?: number; bitrate?: number }) =>
-              level.height ? `${level.height}P` : "Auto", // Type level
-            title: "Quality",
-            auto: "Auto",
+              level.height ? `${level.height}P` : "Automático",
+            title: "Calidad",
+            auto: "Automático",
           },
           audio: {
             control: true,
             setting: true,
-            getName: (track: { name?: string }) => track.name ?? "Unknown", // Type track
+            getName: (track: { name?: string }) => track.name ?? "Desconocido",
             title: "Audio",
-            auto: "Auto",
+            auto: "Automático",
           },
         }),
         artplayerPluginAmbilight({
-          // Configure Ambilight
-          blur: "30", // Use numbers
+          blur: 30,
           opacity: 0.8,
           frequency: 10,
           duration: 0.3,
@@ -397,34 +393,49 @@ function KitsunePlayer({
         }),
       ],
       settings: [
-        // Configure settings panel items
         {
           width: 250,
-          html: "Subtitle",
-          tooltip: "Subtitle",
+          html: "Subtítulos",
+          tooltip: "Subtítulos",
           selector: [
             {
-              html: "Display",
-              tooltip: subOrDub === "sub" ? "Hide" : "Show", // Initial state based on prop
-              switch: subOrDub === "sub", // Switch is ON if sub
+              html: "Mostrar",
+              tooltip: subOrDub === "sub" ? "Ocultar" : "Mostrar",
+              switch: subOrDub === "sub",
               onSwitch: function(item) {
-                const showSubtitle = !item.switch; // The new state
+                const showSubtitle = !item.switch;
                 art.subtitle.show = showSubtitle;
-                item.tooltip = showSubtitle ? "Hide" : "Show";
-                console.log(`Subtitle display set to: ${showSubtitle}`);
-                return showSubtitle; // Return the new switch state
+                item.tooltip = showSubtitle ? "Ocultar" : "Mostrar";
+                return showSubtitle;
               },
             },
-            ...trackOptions, // Add subtitle track choices
+            ...trackOptions,
           ],
           onSelect: function(item: any) {
-            // Type the item
             if (item.url && typeof item.url === "string") {
               art.subtitle.switch(item.url, { name: item.html });
-              return item.html ?? "Subtitle";
+              return item.html;
             }
-            return item.html ?? "Subtitle"; // Return name for display
+            return item.html;
           },
+        },
+        {
+          width: 200,
+          html: "Salto Automático",
+          tooltip: "Salto Automático",
+          selector: [
+            {
+              html: "Activar",
+              tooltip: isAutoSkipEnabled ? "Desactivar" : "Activar",
+              switch: isAutoSkipEnabled,
+              onSwitch: function(item) {
+                const newState = !item.switch;
+                setIsAutoSkipEnabled(newState);
+                item.tooltip = newState ? "Desactivar" : "Activar";
+                return newState;
+              },
+            },
+          ],
         },
       ],
       controls: [manualSkipControl],
@@ -447,7 +458,7 @@ function KitsunePlayer({
       autoplay: false,
       autoOrientation: true,
       pip: true,
-      autoSize: false,
+      autoSize: true, // Cambiado a true para mejor adaptación
       autoMini: false,
       screenshot: true,
       setting: true,
@@ -458,109 +469,83 @@ function KitsunePlayer({
       fullscreen: true,
       fullscreenWeb: true,
       subtitleOffset: true,
-      miniProgressBar: false,
+      miniProgressBar: true, // Cambiado a true para mejor UX
       mutex: true,
       backdrop: true,
       playsInline: true,
       autoPlayback: true,
       airplay: true,
       theme: "#F5316F",
-      moreVideoAttr: { crossOrigin: "anonymous" },
+      moreVideoAttr: { 
+        crossOrigin: "anonymous",
+        playsInline: true
+      },
       subtitle: subtitleConfig,
       icons: {
         loading: `<img width="60" height="60" src="${loadingImage.src}">`,
+        state: `<svg width="30" height="30" viewBox="0 0 30 30"><path fill="currentColor" d="M15 3C8.373 3 3 8.373 3 15s5.373 12 12 12 12-5.373 12-12S21.627 3 15 3zm-2 18v-12l8 6-8 6z"/></svg>`,
       },
+      lang: 'es', // Idioma español
     };
 
-    // --- Initialize ArtPlayer ---
+    // --- Inicializar ArtPlayer ---
     const art = new Artplayer(finalOptions);
     artInstanceRef.current = art;
 
-    // --- Skip Logic Handler ---
+    // --- Manejador de Lógica de Salto ---
     const handleTimeUpdate = () => {
       const art = artInstanceRef.current;
       if (!art || art.loading.show) return;
 
       const currentTime = art.currentTime;
       const duration = art.duration;
-      const {
-        introStart,
-        introEnd,
-        validIntro,
-        outroStart,
-        outroEnd,
-        validOutro,
-      } = skipTimesRef.current; // Use ref
+      const { introStart, introEnd, validIntro, outroStart, outroEnd, validOutro } = skipTimesRef.current;
 
-      const resolvedOutroEnd =
-        validOutro && outroEnd === 0 && duration > 0 ? duration : outroEnd;
-      const inIntro =
-        validIntro &&
-        typeof introStart === "number" &&
-        typeof introEnd === "number" &&
-        currentTime >= introStart &&
-        currentTime < introEnd;
-      const inOutro =
-        validOutro &&
-        typeof outroStart === "number" &&
-        typeof resolvedOutroEnd === "number" &&
-        currentTime >= outroStart &&
-        currentTime < resolvedOutroEnd;
+      const resolvedOutroEnd = validOutro && outroEnd === 0 && duration > 0 ? duration : outroEnd;
+      const inIntro = validIntro && typeof introStart === "number" && typeof introEnd === "number" && currentTime >= introStart && currentTime < introEnd;
+      const inOutro = validOutro && typeof outroStart === "number" && typeof resolvedOutroEnd === "number" && currentTime >= outroStart && currentTime < resolvedOutroEnd;
 
-      // Get the manual skip control instance *once* per update
-      const manualSkip = art.controls["manual-skip"]; // Access by name
+      const manualSkip = art.controls["manual-skip"];
 
       if (isAutoSkipEnabled) {
-        // Auto Skip Logic
         if (manualSkip?.style?.display !== "none") {
-          // Ensure manual button is hidden
           if (manualSkip.style) manualSkip.style.display = "none";
         }
         if (inIntro && typeof introEnd === "number") {
           art.seek = introEnd;
+          art.notice.show = "Intro saltada automáticamente";
         } else if (inOutro && typeof resolvedOutroEnd === "number") {
-          const seekTarget =
-            resolvedOutroEnd === duration ? duration - 0.1 : resolvedOutroEnd;
+          const seekTarget = resolvedOutroEnd === duration ? duration - 0.1 : resolvedOutroEnd;
           art.seek = Math.min(seekTarget, duration);
+          art.notice.show = "Outro saltado automáticamente";
         }
       } else {
-        // Manual Skip Button Logic
-        if (!manualSkip) return; // Guard if control not found
+        if (!manualSkip) return;
 
         if (inIntro || inOutro) {
-          // Show the button
           if (manualSkip.style?.display === "none") {
             if (manualSkip.style) manualSkip.style.display = "inline-flex";
           }
-          // Update text/tooltip
           const skipText = inIntro ? "Intro" : "Outro";
-          // Update HTML text if needed (more complex, might need querySelector)
           const textElement = manualSkip.querySelector(".art-skip-text");
-          if (textElement && textElement.textContent !== `Skip ${skipText}`) {
-            textElement.textContent = `Skip ${skipText}`;
+          if (textElement) {
+            textElement.textContent = `Saltar ${skipText}`;
           }
+          manualSkip.tooltip = `Saltar ${skipText}`;
         } else {
-          // Hide the button
           if (manualSkip.style?.display !== "none") {
             if (manualSkip.style) manualSkip.style.display = "none";
           }
         }
       }
 
-      // --- Watch Progress Tracking ---
-      // 1. Check if minimum watch time is met to potentially create record
-      if (
-        !hasMetMinWatchTimeRef.current &&
-        currentTime >= WATCH_PROGRESS_MIN_WATCH_TIME
-      ) {
-        console.log("Minimum watch time met.");
+      // --- Seguimiento del Progreso ---
+      if (!hasMetMinWatchTimeRef.current && currentTime >= WATCH_PROGRESS_MIN_WATCH_TIME) {
         hasMetMinWatchTimeRef.current = true;
-        // Immediately sync progress if min time just met and no record exists
         if (!watchedRecordIdRef.current) {
-          console.log("Triggering initial sync after min watch time.");
           syncWatchProgress(
             bookmarkIdRef.current,
-            null, // Force creation attempt
+            null,
             {
               episodeId: serversData.episodeId,
               episodeNumber: parseInt(serversData.episodeNo),
@@ -573,83 +558,59 @@ function KitsunePlayer({
               watchHistoryIdsRef.current.push(newId);
             }
           });
-          lastUpdateTimeRef.current = Date.now(); // Prevent immediate throttled update
+          lastUpdateTimeRef.current = Date.now();
         }
       }
 
-      // 2. Throttle updates if playing and min time met OR record already exists
-      if (
-        (hasMetMinWatchTimeRef.current || watchedRecordIdRef.current) &&
-        Date.now() - lastUpdateTimeRef.current > WATCH_PROGRESS_UPDATE_INTERVAL
-      ) {
-        // Call sync directly now, timer approach less reliable with state/refs
-        // console.log("Updating progress via interval check")
+      if ((hasMetMinWatchTimeRef.current || watchedRecordIdRef.current) && Date.now() - lastUpdateTimeRef.current > WATCH_PROGRESS_UPDATE_INTERVAL) {
         syncWatchProgress(bookmarkIdRef.current, watchedRecordIdRef.current, {
           episodeId: serversData.episodeId,
           episodeNumber: parseInt(serversData.episodeNo),
           current: currentTime,
           duration: duration,
         }).then((id) => {
-          if (id) watchedRecordIdRef.current = id; // Update ref just in case
+          if (id) watchedRecordIdRef.current = id;
         });
-        lastUpdateTimeRef.current = Date.now(); // Reset timer
+        lastUpdateTimeRef.current = Date.now();
       }
     };
 
     // --- Event Listeners ---
     art.on("ready", () => {
-      console.log("ArtPlayer ready. Duration:", art.duration);
-      // Adjust subtitle size initially
+      console.log("Reproductor listo. Duración:", art.duration);
+      
+      // Ajustar tamaño de subtítulos
       art.subtitle.style({
-        fontSize: art.height * 0.04 + "px", // Adjust multiplier as needed
+        fontSize: art.height * 0.04 + "px",
       });
-      // --- SEEK TO LAST POSITION ---
+
+      // Buscar última posición
       const seekTime = initialSeekTimeRef.current;
-      // Check if seekTime is a valid number, greater than 0,
-      // and less than the duration (minus a small buffer like 5s to avoid seeking to the very end)
-      if (
-        seekTime !== null &&
-        seekTime > 0 &&
-        art.duration > 0 &&
-        seekTime < art.duration - 5
-      ) {
-        console.log(`Player ready, seeking to initial timestamp: ${seekTime}`);
-        // Optional: Add a very small delay for HLS stability if needed
+      if (seekTime !== null && seekTime > 0 && art.duration > 0 && seekTime < art.duration - 5) {
+        console.log(`Buscando posición inicial: ${seekTime}`);
         setTimeout(() => {
           if (artInstanceRef.current) {
-            // Check if instance still exists
             artInstanceRef.current.seek = seekTime;
+            artInstanceRef.current.notice.show = `Continuando desde ${Math.floor(seekTime / 60)}:${Math.floor(seekTime % 60).toString().padStart(2, '0')}`;
           }
-        }, 100);
+        }, 500); // Aumentado a 500ms para mayor estabilidad
         initialSeekTimeRef.current = null;
       } else {
-        console.log(
-          "Player ready, not seeking (no valid initial time found or near end).",
-        );
-        initialSeekTimeRef.current = null; // Clear ref even if not seeking
+        console.log("Reproductor listo, sin búsqueda inicial.");
+        initialSeekTimeRef.current = null;
       }
     });
 
     art.on("resize", () => {
-      if (!artInstanceRef.current) return; // Guard against destroyed instance
-      // Clamp font size between reasonable min/max values
-      const newSize = Math.max(
-        14,
-        Math.min(32, artInstanceRef.current.height * 0.04),
-      );
+      if (!artInstanceRef.current) return;
+      const newSize = Math.max(14, Math.min(32, artInstanceRef.current.height * 0.04));
       artInstanceRef.current.subtitle.style({ fontSize: `${newSize}px` });
     });
 
     art.on("error", (error, reconnectTime) => {
-      console.error(
-        "ArtPlayer Error:",
-        error,
-        "Reconnect attempt:",
-        reconnectTime,
-      );
-      // Optionally show a user-friendly message
+      console.error("Error del Reproductor:", error, "Intento de reconexión:", reconnectTime);
       if (artInstanceRef.current) {
-        artInstanceRef.current.notice.show = `Error: ${error.message || "Playback failed"}`;
+        artInstanceRef.current.notice.show = `Error: ${error.message || "Error de reproducción"}`;
       }
     });
 
@@ -658,10 +619,7 @@ function KitsunePlayer({
     const handleInteractionUpdate = () => {
       const art = artInstanceRef.current;
       if (!art || !art.duration || art.duration <= 0) return;
-      // Only update if min time met or record exists
       if (hasMetMinWatchTimeRef.current || watchedRecordIdRef.current) {
-        console.log("Syncing progress on pause/seek.");
-        // Clear any pending throttled update
         if (updateTimerRef.current) clearTimeout(updateTimerRef.current);
         syncWatchProgress(bookmarkIdRef.current, watchedRecordIdRef.current, {
           episodeId: serversData.episodeId,
@@ -674,92 +632,59 @@ function KitsunePlayer({
         lastUpdateTimeRef.current = Date.now();
       }
     };
+    
     art.on("video:pause", handleInteractionUpdate);
     art.on("video:seeked", handleInteractionUpdate);
 
-    // --- Callback for Parent ---
+    // --- Callback para el Componente Padre ---
     if (getInstance && typeof getInstance === "function") {
       getInstance(art);
     }
 
-    // --- Cleanup Function ---
+    // --- Función de Limpieza ---
     return () => {
-      console.log(
-        "Running cleanup for ArtPlayer instance:",
-        artInstanceRef.current?.id,
-      );
+      console.log("Ejecutando limpieza del reproductor");
 
-      const art = artInstanceRef.current; // Get instance ref
-      const hls = hlsInstanceRef.current; // Get HLS ref
+      const art = artInstanceRef.current;
+      const hls = hlsInstanceRef.current;
 
       if (hls) {
-        console.log("Cleanup: Detaching HLS media");
-        // Although hls.destroy() calls detachMedia, being explicit can sometimes help timing
-        if (hls.media) {
-          hls.detachMedia();
-        }
-        console.log("Cleanup: Destroying HLS instance.");
         hls.destroy();
         hlsInstanceRef.current = null;
       }
 
-      if (
-        art &&
-        art.duration > 0 &&
-        (hasMetMinWatchTimeRef.current || watchedRecordIdRef.current)
-      ) {
-        console.log("Syncing final progress on unmount.");
-        // Use current values directly
+      if (art && art.duration > 0 && (hasMetMinWatchTimeRef.current || watchedRecordIdRef.current)) {
         syncWatchProgress(bookmarkIdRef.current, watchedRecordIdRef.current, {
           episodeId: serversData.episodeId,
           episodeNumber: parseInt(serversData.episodeNo),
           current: art.currentTime,
           duration: art.duration,
-        }); // Don't need to wait for promise here
+        });
       }
 
-      // Clear throttle timer
       if (updateTimerRef.current) {
         clearTimeout(updateTimerRef.current);
         updateTimerRef.current = null;
       }
 
       if (art) {
-        console.log("Cleanup: Destroying ArtPlayer instance.");
         art.off("video:pause", handleInteractionUpdate);
         art.off("video:seeked", handleInteractionUpdate);
         art.off("video:timeupdate", handleTimeUpdate);
 
-        console.log("Cleanup: Pausing player");
-        art.pause(); // Explicitly pause
+        art.pause();
 
         if (art.video) {
-          console.log("Cleanup: Removing video src and loading");
-          art.video.removeAttribute("src"); // Remove source
-          art.video.load(); // Force reload/reset state
+          art.video.removeAttribute("src");
+          art.video.load();
         }
 
         if (currentHlsInstanceForCleanup) {
-          console.log(
-            "Cleanup: Destroying HLS instance specifically for ArtPlayer:",
-            art.id,
-          );
           currentHlsInstanceForCleanup.destroy();
-          // If the global hlsInstanceRef still points to this one, nullify it.
           if (hlsInstanceRef.current === currentHlsInstanceForCleanup) {
             hlsInstanceRef.current = null;
           }
-          currentHlsInstanceForCleanup = null; // Clear the closure variable
-        } else if (hlsInstanceRef.current) {
-          // Fallback: if currentHlsInstanceForCleanup wasn't set but global one exists,
-          // it *might* be the one. This is less ideal but a safeguard.
-          // The art.on('destroy') for HLS should have ideally handled this.
-          console.warn(
-            "Cleanup: currentHlsInstanceForCleanup was null, attempting to destroy hlsInstanceRef.current for ArtPlayer:",
-            art.id,
-          );
-          hlsInstanceRef.current.destroy();
-          hlsInstanceRef.current = null;
+          currentHlsInstanceForCleanup = null;
         }
 
         art.destroy(true);
@@ -768,29 +693,51 @@ function KitsunePlayer({
         }
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uri, episodeInfo, animeInfo, subOrDub, getInstance, autoSkip]);
 
   // --- Render ---
   return (
     <div
       className={cn(
-        "relative w-full h-auto aspect-video  min-h-[20vh] sm:min-h-[30vh] md:min-h-[40vh] lg:min-h-[60vh] max-h-[500px] lg:max-h-[calc(100vh-150px)] bg-black overflow-hidden", // Added relative and overflow-hidden
+        "relative w-full h-auto bg-black overflow-hidden",
+        // Eliminados todos los márgenes laterales y máximo de altura restrictivo
+        "min-h-[40vh] sm:min-h-[50vh] md:min-h-[60vh]",
         rest.className ?? "",
       )}
+      style={{
+        // Fuerza el reproductor a pegarse a los bordes
+        marginLeft: 0,
+        marginRight: 0,
+        paddingLeft: 0,
+        paddingRight: 0,
+      }}
     >
-      <div ref={artContainerRef} className="w-full h-full">
+      <div 
+        ref={artContainerRef} 
+        className="w-full h-full"
+        style={{
+          // Asegura que el contenedor interno también ocupe todo el espacio
+          width: '100%',
+          height: '100%',
+          margin: 0,
+          padding: 0
+        }}
+      >
         {!uri && (
           <div
-            className="w-full h-full flex items-center justify-center bg-cover bg-center"
+            className="w-full h-full flex items-center justify-center bg-cover bg-center bg-gray-900"
             style={{ backgroundImage: `url(${animeInfo.image})` }}
           >
-            <Image
-              width="60"
-              height="60"
-              src={loadingImage.src}
-              alt="Loading..."
-            />
+            <div className="bg-black/50 rounded-lg p-4 flex flex-col items-center">
+              <Image
+                width="60"
+                height="60"
+                src={loadingImage.src}
+                alt="Cargando..."
+                className="mb-2"
+              />
+              <span className="text-white text-sm">Cargando reproductor...</span>
+            </div>
           </div>
         )}
       </div>

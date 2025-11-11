@@ -22,26 +22,26 @@ import { toast } from "sonner";
 
 // Menú de navegación en español
 const menuItems: Array<{ title: string; href?: string; icon?: ReactNode }> = [
-  {
-    title: "Inicio",
-    href: ROUTES.HOME,
-    icon: <Home size={18} />
-  },
-  {
-    title: "Catálogo",
-    href: ROUTES.CATALOG || "#",
-    icon: <Compass size={18} />
-  },
-  {
-    title: "Novedades",
-    href: ROUTES.NEWS || "#",
-    icon: <Newspaper size={18} />
-  },
-  {
-    title: "Mi Lista",
-    href: ROUTES.COLLECTION || "#",
-    icon: <Bookmark size={18} />
-  },
+  // {
+  //  title: "Inicio",
+  //  href: ROUTES.HOME,
+  //  icon: <Home size={18} />
+  // },
+  // {
+  //  title: "Catálogo",
+  //  href: ROUTES.CATALOG || "#",
+  //  icon: <Compass size={18} />
+  // },
+  // {
+  //  title: "Novedades",
+  //  href: ROUTES.NEWS || "#",
+  //  icon: <Newspaper size={18} />
+  // },
+  // {
+  //  title: "Mi Lista",
+  //  href: ROUTES.COLLECTION || "#",
+  //  icon: <Bookmark size={18} />
+  // },
 ];
 
 const NavBar = () => {
