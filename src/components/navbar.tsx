@@ -11,7 +11,7 @@ import { ROUTES } from "@/constants/routes";
 import React, { ReactNode, useEffect, useState } from "react";
 
 import SearchBar from "./search-bar";
-// import { MenuIcon, X, Home, Compass, Newspaper, Bookmark } from "lucide-react";
+import { MenuIcon, X } from "lucide-react"; //, Home, Compass, Newspaper, Bookmark
 import useScrollPosition from "@/hooks/use-scroll-position";
 import { Sheet, SheetClose, SheetContent, SheetTrigger } from "./ui/sheet";
 import LoginPopoverButton from "./login-popover-button";
