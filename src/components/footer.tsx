@@ -16,17 +16,23 @@ const Footer = () => {
           <DiscordLogoIcon width="25" height="25" />
         </a>
         <a href="https://tiktok.com/@aniostv" target="_blank">
-          <TiktokLogoIcon width="25" target="_blank" />
+          <TiktokLogoIcon width="25" height="25" />
         </a>
-        <a href="https://Youtube.com/@aniostv" target="_blank">
-          <YoutubeLogoIcon width="25" target="_blank" />
+        <a href="https://youtube.com/@aniostv" target="_blank">
+          <YoutubeLogoIcon width="25" height="25" />
         </a>
         <a href="https://discord.gg/" target="_blank">
-          <WhatsappLogoIcon width="25" target="_blank" />
+          <WhatsappLogoIcon width="25" height="25" />
         </a>
       </div>
-      <p className="text-sm text-gray-300">
-        AniOS no almacena ningún archivo en el servidor, solo enlaza a los contenidos multimedia alojados en servicios de terceros.      <p className="text-sm text-gray-300">&copy; todos los derechos reservados a su desarrollador - DioverDM</p>
+      <div className="text-center">
+        <p className="text-sm text-gray-300">
+          AniOS no almacena ningún archivo en el servidor, solo enlaza a los contenidos multimedia alojados en servicios de terceros.
+        </p>
+        <p className="text-sm text-gray-300 mt-2">
+          &copy; Todos los derechos reservados a su desarrollador - DioverDM
+        </p>
+      </div>
     </footer>
   );
 };
